@@ -58,7 +58,7 @@ public class PostService {
         try {
             return postRepository.findById(id).get();
         } catch (NoSuchElementException e) {
-            throw new EntityNotFoundException("There is no post with that id:" +id+ "stored in database");
+            throw new EntityNotFoundException("There is no post with that id " +id+ " stored in database");
         }
     }
 

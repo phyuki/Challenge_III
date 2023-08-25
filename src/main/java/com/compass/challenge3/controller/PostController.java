@@ -32,18 +32,8 @@ public class PostController {
     @Autowired
     private JSONParseClient proxy;
 
-    @PostMapping("/{postId}")
-    public ResponseEntity<PostRecord> processPost(@PathVariable Long postId){
-
-        if(postId < 1 || postId > 100){
-            throw new EntityNotFoundException("Post does not exist with id: " + postId);
-        }
-        if(postService.existsById(postId)){
-            throw new IllegalArgumentException("This id has already been processed");
-        }
-        List<History> history = new ArrayList<>();
-        history.add(new History(0L, new Date(), "CREATED", null));
-
+    public PostRecord fetchPosts(Long postId, Post post,
+                                 List<History> history){
         PostRecord postRecord;
         try {
             history.add(new History(0L, new Date(), "POST_FIND", null));
@@ -52,15 +42,19 @@ public class PostController {
         }
         catch(FeignException e){
             history.add(new History(0L, new Date(), "FAILED", null));
-            Post post = new Post(postId, "", "", new ArrayList<>(), new ArrayList<>());
+            if(post == null){
+                post = new Post(postId, "", "", new ArrayList<>(), new ArrayList<>());
+            }
             List<History> savedHistory = historyService.saveAll(history);
             post.setHistory(savedHistory);
             postService.save(post);
             throw new RuntimeException("Communication Error");
         }
+        return postRecord;
+    }
 
-        Post post = new Post(postId, postRecord.title(), postRecord.body(), new ArrayList<>(), new ArrayList<>());
-
+    public Post fetchComments(Long postId, Post post,
+                                             List<History> history){
         List<CommentRecord> commentRecords;
 
         try {
@@ -87,7 +81,26 @@ public class PostController {
         List<History> savedHistory = historyService.saveAll(history);
         post.setHistory(savedHistory);
 
-        postService.save(post);
+        return post;
+    }
+
+    @PostMapping("/{postId}")
+    public ResponseEntity<PostRecord> processPost(@PathVariable Long postId){
+
+        if(postId < 1 || postId > 100){
+            throw new EntityNotFoundException("Post does not exist with id: " + postId);
+        }
+        if(postService.existsById(postId)){
+            throw new IllegalArgumentException("This id has already been processed");
+        }
+        List<History> history = new ArrayList<>();
+        history.add(new History(0L, new Date(), "CREATED", null));
+
+        PostRecord postRecord = fetchPosts(postId, null, history);
+
+        Post post = new Post(postId, postRecord.title(), postRecord.body(), new ArrayList<>(), new ArrayList<>());
+        Post processedPost = fetchComments(postId, post, history);
+        postService.save(processedPost);
 
         return new ResponseEntity<>(postRecord, HttpStatus.CREATED);
     }
@@ -130,48 +143,12 @@ public class PostController {
 
         history.add(new History(0L, new Date(), "UPDATING", null));
 
-        PostRecord postRecord;
-        try {
-            history.add(new History(0L, new Date(), "POST_FIND", null));
-            postRecord = proxy.retrievePost(postId);
-            history.add(new History(0L, new Date(), "POST_OK", null));
-        }
-        catch(FeignException e){
-            history.add(new History(0L, new Date(), "FAILED", null));
-            List<History> savedHistory = historyService.saveAll(history);
-            post.setHistory(savedHistory);
-            postService.save(post);
-            throw new RuntimeException("Communication Error");
-        }
+        PostRecord postRecord = fetchPosts(postId, post, history);
         post.setBody(postRecord.body());
         post.setTitle(postRecord.title());
 
-        List<CommentRecord> commentRecords;
-        try {
-            history.add(new History(0L, new Date(), "COMMENTS_FIND", null));
-            commentRecords = proxy.retrieveComments(postId);
-            history.add(new History(0L, new Date(), "COMMENTS_OK", null));
-        } catch(FeignException e){
-            history.add(new History(0L, new Date(), "FAILED", null));
-            List<History> savedHistory = historyService.saveAll(history);
-            post.setHistory(savedHistory);
-            postService.save(post);
-            throw new RuntimeException("Communication Error");
-        }
-
-        List<Comment> comments = new ArrayList<>();
-        for(CommentRecord c : commentRecords){
-            comments.add(new Comment(c.id(), c.body(), null));
-        }
-
-        List<Comment> savedComments = commentService.saveAll(comments);
-        post.setComments(savedComments);
-
-        history.add(new History(0L, new Date(), "ENABLED", null));
-        List<History> savedHistory = historyService.saveAll(history);
-        post.setHistory(savedHistory);
-
-        postService.save(post);
+        Post processedPost = fetchComments(postId, post, history);
+        postService.save(processedPost);
 
         return new ResponseEntity<>("ENABLED", HttpStatus.OK);
     }
