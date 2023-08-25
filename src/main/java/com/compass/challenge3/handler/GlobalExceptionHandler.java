@@ -32,4 +32,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return problemDetail;
     }
 
+    @ExceptionHandler(RuntimeException.class)
+    public ProblemDetail handleRuntimeException(RuntimeException e) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.REQUEST_TIMEOUT,
+                e.getLocalizedMessage());
+        problemDetail.setProperty("timestamp", Instant.now());
+        problemDetail.setProperty("stacktrace", e.getStackTrace());
+
+        return problemDetail;
+    }
 }

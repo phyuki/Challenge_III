@@ -54,4 +54,21 @@ public class PostService {
         return postRepository.existsById(id);
     }
 
+    public Post findById(Long id){
+        try {
+            return postRepository.findById(id).get();
+        } catch (NoSuchElementException e) {
+            throw new EntityNotFoundException("There is no post with that id:" +id+ "stored in database");
+        }
+    }
+
+    public void updateHistory(Post post){
+        Post savedPost = postRepository.save(post);
+        List<History> history = new ArrayList<>(savedPost.getHistory());
+        for(History hist : history){
+            hist.setPost(savedPost);
+        }
+        historyRepository.saveAll(history);
+    }
+
 }
