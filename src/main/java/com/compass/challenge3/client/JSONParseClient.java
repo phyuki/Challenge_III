@@ -17,6 +17,4 @@ public interface JSONParseClient {
     @GetMapping("posts/{postId}/comments")
     List<CommentRecord> retrieveComments(@PathVariable Long postId);
 
-
-
 }

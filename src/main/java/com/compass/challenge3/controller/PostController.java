@@ -1,6 +1,7 @@
 package com.compass.challenge3.controller;
 
 import com.compass.challenge3.client.JSONParseClient;
+import com.compass.challenge3.client.JSONParseClientAsync;
 import com.compass.challenge3.dto.CommentRecord;
 import com.compass.challenge3.dto.PostRecord;
 import com.compass.challenge3.entity.Comment;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 
 @RestController
 @RequestMapping("/posts")
@@ -30,17 +32,17 @@ public class PostController {
     @Autowired
     private HistoryService historyService;
     @Autowired
-    private JSONParseClient proxy;
+    private JSONParseClientAsync proxy;
 
     public PostRecord fetchPosts(Long postId, Post post,
                                  List<History> history){
         PostRecord postRecord;
         try {
             history.add(new History(0L, new Date(), "POST_FIND", null));
-            postRecord = proxy.retrievePost(postId);
+            postRecord = proxy.retrievePostAsync(postId).get();
             history.add(new History(0L, new Date(), "POST_OK", null));
         }
-        catch(FeignException e){
+        catch(FeignException | InterruptedException | ExecutionException e){
             history.add(new History(0L, new Date(), "FAILED", null));
             if(post == null){
                 post = new Post(postId, "", "", new ArrayList<>(), new ArrayList<>());
@@ -59,9 +61,9 @@ public class PostController {
 
         try {
             history.add(new History(0L, new Date(), "COMMENTS_FIND", null));
-            commentRecords = proxy.retrieveComments(postId);
+            commentRecords = proxy.retrieveCommentsAsync(postId).get();
             history.add(new History(0L, new Date(), "COMMENTS_OK", null));
-        } catch(FeignException e){
+        } catch(FeignException | InterruptedException | ExecutionException e){
             history.add(new History(0L, new Date(), "FAILED", null));
             List<History> savedHistory = historyService.saveAll(history);
             post.setHistory(savedHistory);
