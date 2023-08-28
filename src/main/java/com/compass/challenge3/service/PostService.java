@@ -8,7 +8,11 @@ import com.compass.challenge3.repository.CommentRepository;
 import com.compass.challenge3.repository.HistoryRepository;
 import com.compass.challenge3.repository.PostRepository;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -60,6 +64,11 @@ public class PostService {
         } catch (NoSuchElementException e) {
             throw new EntityNotFoundException("There is no post with that id " +id+ " stored in database");
         }
+    }
+
+    public Page<Post> findPostsByPage(@NotNull int pageNo, @NotNull int pageSize){
+        Pageable postPage = PageRequest.of(pageNo, pageSize);
+        return postRepository.findAll(postPage);
     }
 
     public void updateHistory(Post post){

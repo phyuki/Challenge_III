@@ -1,6 +1,5 @@
 package com.compass.challenge3.controller;
 
-import com.compass.challenge3.client.JSONParseClient;
 import com.compass.challenge3.client.JSONParseClientAsync;
 import com.compass.challenge3.dto.CommentRecord;
 import com.compass.challenge3.dto.PostRecord;
@@ -13,6 +12,7 @@ import com.compass.challenge3.service.PostService;
 import feign.FeignException;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -47,6 +47,7 @@ public class PostController {
             if(post == null){
                 post = new Post(postId, "", "", new ArrayList<>(), new ArrayList<>());
             }
+            history.add(new History(0L, new Date(), "DISABLED", null));
             List<History> savedHistory = historyService.saveAll(history);
             post.setHistory(savedHistory);
             postService.save(post);
@@ -65,6 +66,7 @@ public class PostController {
             history.add(new History(0L, new Date(), "COMMENTS_OK", null));
         } catch(FeignException | InterruptedException | ExecutionException e){
             history.add(new History(0L, new Date(), "FAILED", null));
+            history.add(new History(0L, new Date(), "DISABLED", null));
             List<History> savedHistory = historyService.saveAll(history);
             post.setHistory(savedHistory);
             postService.save(post);
@@ -159,6 +161,14 @@ public class PostController {
     public ResponseEntity<List<Post>> queryPosts(){
         List<Post> allPosts = postService.findAll();
         return new ResponseEntity<>(allPosts, HttpStatus.OK);
+    }
+
+    @GetMapping(params = { "page", "size" })
+    public ResponseEntity<List<Post>> queryPostsByPage(@RequestParam("page") int page,
+                                                       @RequestParam("size") int size){
+        Page<Post> postsByPage = postService.findPostsByPage(page-1, size);
+        List<Post> allPostsInPage = postsByPage.getContent();
+        return new ResponseEntity<>(allPostsInPage, HttpStatus.OK);
     }
 
 }
