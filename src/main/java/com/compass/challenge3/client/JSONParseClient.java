@@ -8,13 +8,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.List;
 
-@FeignClient(name="posts", url="https://jsonplaceholder.typicode.com")
+@FeignClient(name="posts", url="${external.source.url}")
 public interface JSONParseClient {
 
-    @GetMapping("/posts/{postId}")
+    @GetMapping("${external.source.post.path}")
     PostRecord retrievePost(@PathVariable Long postId);
 
-    @GetMapping("posts/{postId}/comments")
+    @GetMapping("${external.source.comment.path}")
     List<CommentRecord> retrieveComments(@PathVariable Long postId);
 
 }
