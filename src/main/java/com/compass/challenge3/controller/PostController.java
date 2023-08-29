@@ -38,45 +38,34 @@ public class PostController {
         List<Comment> comments = fetchService.fetchComments(postId, post, history);
         post.setComments(comments);
 
-        history.add(new History(0L, new Date(), "ENABLED", null));
-        List<History> savedHistory = historyService.saveAll(history);
-        post.setHistory(savedHistory);
-        postService.save(post);
+        postService.saveContent(post, comments, history);
 
-        return new ResponseEntity<>(new PostRecord(post.getTitle(), post.getBody()), HttpStatus.CREATED);
+        return new ResponseEntity<>(postService.postToRecord(post), HttpStatus.CREATED);
     }
 
     @DeleteMapping("/{postId}")
     public ResponseEntity<String> disablePost(@PathVariable Long postId){
 
         Post post = postService.findById(postId);
-        postService.checkEnabled(post);
+        postService.disablePost(post);
 
-        History savedHist = historyService.save(new History(0L, new Date(), "DISABLED", null));
-        post.getHistory().add(savedHist);
-        postService.saveHistory(post);
         return new ResponseEntity<>("DISABLED", HttpStatus.OK);
     }
 
     @PutMapping("/{postId}")
-    public ResponseEntity<String> reprocessPost(@PathVariable Long postId){
+    public ResponseEntity<PostRecord> reprocessPost(@PathVariable Long postId){
 
         Post post = postService.findById(postId);
         List<History> history = postService.updateHistory(post);
 
         Post updatedPost = fetchService.fetchPost(postId, post, history);
+        post.setTitle(updatedPost.getTitle());
         post.setBody(updatedPost.getBody());
-        post.setTitle(updatedPost.getBody());
 
         List<Comment> comments = fetchService.fetchComments(postId, post, history);
-        post.setComments(comments);
+        postService.saveContent(post, comments, history);
 
-        history.add(new History(0L, new Date(), "ENABLED", null));
-        List<History> savedHistory = historyService.saveAll(history);
-        post.setHistory(savedHistory);
-        postService.save(post);
-
-        return new ResponseEntity<>("ENABLED", HttpStatus.OK);
+        return new ResponseEntity<>(postService.postToRecord(post), HttpStatus.OK);
     }
 
     @GetMapping

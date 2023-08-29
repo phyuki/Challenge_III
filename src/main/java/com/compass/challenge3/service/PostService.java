@@ -40,14 +40,20 @@ public class PostService {
          return new Post(postId, postRecord.title(), postRecord.body(), new ArrayList<>(), new ArrayList<>());
     }
 
-    public Post save(Post post) {
+    public PostRecord postToRecord(Post post){
+        return new PostRecord(post.getTitle(), post.getBody());
+    }
+
+    public Post saveContent(Post post, List<Comment> comments, List<History> history) {
+
+        history.add(new History(0L, new Date(), "ENABLED", null));
+        post.setHistory(new ArrayList<>());
+        post.setComments(new ArrayList<>());
 
         Post savedPost = postRepository.save(post);
-        List<Comment> comments = new ArrayList<>(savedPost.getComments());
         for(Comment comment : comments){
             comment.setPost(savedPost);
         }
-        List<History> history = new ArrayList<>(savedPost.getHistory());
         for(History hist : history){
             hist.setPost(savedPost);
         }
@@ -84,36 +90,43 @@ public class PostService {
 
     public List<History> initPost(Long postId){
 
-        //Exception handler and initializing history of a specific post
+        // Exception handler -> id needs to be in range of [1,100] and hasn't been created before
         if(postId < 1 || postId > 100){
             throw new IllegalArgumentException("Id is not in range [1, 100]");
         }
         if(this.existsById(postId)){
             throw new IllegalArgumentException("This id has already been processed");
         }
+        // Initializing history of a specific post
         List<History> history = new ArrayList<>();
         history.add(new History(0L, new Date(), "CREATED", null));
         return history;
     }
 
-    public void checkEnabled(Post post){
+    public void disablePost(Post post){
+
+        // Exception handler -> Only enabled posts can be deleted
         int size = post.getHistory().size();
         if(!post.getHistory().get(size-1).getStatus().equals("ENABLED")){
             throw new IllegalArgumentException("This post is not enabled");
         }
-    }
 
-    public void saveHistory(Post post){
-        Post savedPost = postRepository.save(post);
-        List<History> history = new ArrayList<>(savedPost.getHistory());
-        for(History hist : history){
-            hist.setPost(savedPost);
+        post.setTitle(null);
+        post.setBody(null);
+
+        for(Comment comment : post.getComments()){
+            commentRepository.delete(comment);
         }
-        historyRepository.saveAll(history);
+
+        History savedHist = new History(0L, new Date(), "DISABLED", null);
+        savedHist.setPost(post);
+        historyRepository.save(savedHist);
+
     }
 
     public List<History> updateHistory(Post post){
 
+        // Exception handler -> Only posts already processed (ENABLED or DISABLED) can be reprocessed
         List<History> history = post.getHistory();
         int size = history.size();
         String status = history.get(size-1).getStatus();

@@ -48,9 +48,7 @@ public class FetchService {
                 post = new Post(postId, "", "", new ArrayList<>(), new ArrayList<>());
             }
             history.add(new History(0L, new Date(), "DISABLED", null));
-            List<History> savedHistory = historyService.saveAll(history);
-            post.setHistory(savedHistory);
-            postService.save(post);
+            postService.saveContent(post, post.getComments(), history);
             throw new RuntimeException("Communication Error");
         }
 
@@ -68,9 +66,7 @@ public class FetchService {
         } catch (RetryableException | InterruptedException | ExecutionException e) {
             history.add(new History(0L, new Date(), "FAILED", null));
             history.add(new History(0L, new Date(), "DISABLED", null));
-            List<History> savedHistory = historyService.saveAll(history);
-            post.setHistory(savedHistory);
-            postService.save(post);
+            postService.saveContent(post, post.getComments(), history);
             throw new RuntimeException("Communication Error");
         }
 
