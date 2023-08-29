@@ -6,7 +6,6 @@ import com.compass.challenge3.dto.PostRecord;
 import com.compass.challenge3.entity.Comment;
 import com.compass.challenge3.entity.History;
 import com.compass.challenge3.entity.Post;
-import feign.FeignException;
 import feign.RetryableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
