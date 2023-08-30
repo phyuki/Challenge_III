@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.List;
 
-@FeignClient(name="posts", url="${external.source.url}", fallback = FallbackResponse.class)
+@FeignClient(name="posts", url="${external.source.url}")
 public interface JSONParseClient {
 
     @Retry(name="fetch-post")

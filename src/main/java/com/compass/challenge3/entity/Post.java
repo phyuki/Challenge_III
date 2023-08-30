@@ -26,12 +26,12 @@ public class Post {
     @Column(length=512)
     private String body;
 
-    @OneToMany(mappedBy = "post")
+    @OneToMany(mappedBy = "post", fetch = FetchType.EAGER)
     private List<Comment> comments;
 
     @NotNull
     @Column(nullable = false)
-    @OneToMany(mappedBy = "post")
+    @OneToMany(mappedBy = "post", fetch = FetchType.EAGER)
     private List<History> history;
 
 }

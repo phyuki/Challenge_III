@@ -62,6 +62,12 @@ public class PostService {
         return savedPost;
     }
 
+    public Post updateContent(Post post, Post recentPost){
+        post.setTitle(recentPost.getTitle());
+        post.setBody(recentPost.getBody());
+        return post;
+    }
+
     public List<Post> findAll(){
         return postRepository.findAll();
     }
@@ -113,6 +119,7 @@ public class PostService {
 
         post.setTitle(null);
         post.setBody(null);
+        postRepository.save(post);
 
         for(Comment comment : post.getComments()){
             commentRepository.delete(comment);

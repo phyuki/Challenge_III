@@ -1,6 +1,6 @@
 package com.compass.challenge3.service;
 
-import com.compass.challenge3.client.JSONParseClientAsync;
+import com.compass.challenge3.client.JSONParseClient;
 import com.compass.challenge3.dto.CommentRecord;
 import com.compass.challenge3.dto.PostRecord;
 import com.compass.challenge3.entity.Comment;
@@ -13,22 +13,19 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 @Service
 public class FetchService {
 
     private final PostService postService;
-    private final HistoryService historyService;
     private final CommentService commentService;
-    private final JSONParseClientAsync proxy;
+    private final JSONParseClient proxy;
 
     @Autowired
     public FetchService(PostService postService,
-                        HistoryService historyService,
-                        CommentService commentService, JSONParseClientAsync proxy) {
+                        CommentService commentService,
+                        JSONParseClient proxy) {
         this.postService = postService;
-        this.historyService = historyService;
         this.commentService = commentService;
         this.proxy = proxy;
     }
@@ -39,10 +36,10 @@ public class FetchService {
         PostRecord postRecord;
         try {
             history.add(new History(0L, new Date(), "POST_FIND", null));
-            postRecord = proxy.retrievePostAsync(postId).get();
+            postRecord = proxy.retrievePost(postId);
             history.add(new History(0L, new Date(), "POST_OK", null));
         }
-        catch(RetryableException | InterruptedException | ExecutionException e){
+        catch(RetryableException e){
             history.add(new History(0L, new Date(), "FAILED", null));
             if(post == null){
                 post = new Post(postId, "", "", new ArrayList<>(), new ArrayList<>());
@@ -61,9 +58,9 @@ public class FetchService {
         List<CommentRecord> commentRecords;
         try {
             history.add(new History(0L, new Date(), "COMMENTS_FIND", null));
-            commentRecords = proxy.retrieveCommentsAsync(postId).get();
+            commentRecords = proxy.retrieveComments(postId);
             history.add(new History(0L, new Date(), "COMMENTS_OK", null));
-        } catch (RetryableException | InterruptedException | ExecutionException e) {
+        } catch (RetryableException e) {
             history.add(new History(0L, new Date(), "FAILED", null));
             history.add(new History(0L, new Date(), "DISABLED", null));
             postService.saveContent(post, post.getComments(), history);
@@ -71,7 +68,9 @@ public class FetchService {
         }
 
         List<Comment> comments = commentService.recordToComments(commentRecords);
-        return commentService.saveAll(comments);
+        List<Comment> savedComments = commentService.saveAll(comments);
+        post.setComments(comments);
+        return savedComments;
     }
 
 }

@@ -4,10 +4,7 @@ import com.compass.challenge3.dto.PostRecord;
 import com.compass.challenge3.entity.Comment;
 import com.compass.challenge3.entity.History;
 import com.compass.challenge3.entity.Post;
-import com.compass.challenge3.service.CommentService;
-import com.compass.challenge3.service.FetchService;
-import com.compass.challenge3.service.HistoryService;
-import com.compass.challenge3.service.PostService;
+import com.compass.challenge3.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -15,71 +12,68 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 @RestController
 @RequestMapping("/posts")
 public class PostController {
 
     @Autowired
-    private PostService postService;
+    private AsyncPostService asyncPostService;
     @Autowired
-    private CommentService commentService;
-    @Autowired
-    private HistoryService historyService;
-    @Autowired
-    private FetchService fetchService;
+    private AsyncFetchService asyncFetchService;
 
     @PostMapping("/{postId}")
-    public ResponseEntity<PostRecord> processPost(@PathVariable Long postId){
+    public ResponseEntity<PostRecord> processPost(@PathVariable Long postId) throws ExecutionException, InterruptedException {
 
-        List<History> history = postService.initPost(postId);
-        Post post = fetchService.fetchPost(postId, null, history);
+        CompletableFuture<List<History>> history = asyncPostService.initPost(postId);
+        CompletableFuture<Post> post = asyncFetchService.fetchPost(postId, null, history.get());
 
-        List<Comment> comments = fetchService.fetchComments(postId, post, history);
-        post.setComments(comments);
+        CompletableFuture<List<Comment>> comments = asyncFetchService.fetchComments(postId, post.get(), history.get());
 
-        postService.saveContent(post, comments, history);
+        asyncPostService.saveContent(post.get(), comments.get(), history.get());
 
-        return new ResponseEntity<>(postService.postToRecord(post), HttpStatus.CREATED);
+        return new ResponseEntity<>(asyncPostService.postToRecord(post.get()).get(), HttpStatus.CREATED);
     }
 
     @DeleteMapping("/{postId}")
-    public ResponseEntity<String> disablePost(@PathVariable Long postId){
+    public ResponseEntity<String> disablePost(@PathVariable Long postId) throws ExecutionException, InterruptedException {
 
-        Post post = postService.findById(postId);
-        postService.disablePost(post);
+        CompletableFuture<Post> post = asyncPostService.findById(postId);
+        CompletableFuture<Void> disabled = asyncPostService.disablePost(post.get());
+
+        CompletableFuture.allOf(post, disabled).join();
 
         return new ResponseEntity<>("DISABLED", HttpStatus.OK);
     }
 
     @PutMapping("/{postId}")
-    public ResponseEntity<PostRecord> reprocessPost(@PathVariable Long postId){
+    public ResponseEntity<PostRecord> reprocessPost(@PathVariable Long postId) throws ExecutionException, InterruptedException {
 
-        Post post = postService.findById(postId);
-        List<History> history = postService.updateHistory(post);
+        CompletableFuture<Post> post = asyncPostService.findById(postId);
+        CompletableFuture<List<History>> history = asyncPostService.updateHistory(post.get());
 
-        Post updatedPost = fetchService.fetchPost(postId, post, history);
-        post.setTitle(updatedPost.getTitle());
-        post.setBody(updatedPost.getBody());
+        CompletableFuture<Post> recentPost = asyncFetchService.fetchPost(postId, post.get(), history.get());
+        asyncPostService.updateContent(post.get(), recentPost.get());
 
-        List<Comment> comments = fetchService.fetchComments(postId, post, history);
-        postService.saveContent(post, comments, history);
+        CompletableFuture<List<Comment>> comments = asyncFetchService.fetchComments(postId, post.get(), history.get());
+        asyncPostService.saveContent(post.get(), comments.get(), history.get());
 
-        return new ResponseEntity<>(postService.postToRecord(post), HttpStatus.OK);
+        return new ResponseEntity<>(asyncPostService.postToRecord(post.get()).get(), HttpStatus.OK);
     }
 
     @GetMapping
-    public ResponseEntity<List<Post>> queryPosts(){
-        List<Post> allPosts = postService.findAll();
-        return new ResponseEntity<>(allPosts, HttpStatus.OK);
+    public ResponseEntity<List<Post>> queryPosts() throws ExecutionException, InterruptedException {
+        CompletableFuture<List<Post>> allPosts = asyncPostService.findAll();
+        return new ResponseEntity<>(allPosts.get(), HttpStatus.OK);
     }
 
     @GetMapping(params = { "page", "size" })
     public ResponseEntity<List<Post>> queryPostsByPage(@RequestParam("page") int page,
-                                                       @RequestParam("size") int size){
-        Page<Post> postsByPage = postService.findPostsByPage(page-1, size);
-        List<Post> allPostsInPage = postsByPage.getContent();
-        return new ResponseEntity<>(allPostsInPage, HttpStatus.OK);
+                                                       @RequestParam("size") int size) throws ExecutionException, InterruptedException {
+        CompletableFuture<Page<Post>> postsByPage = asyncPostService.findPostsByPage(page-1, size);
+        return new ResponseEntity<>(postsByPage.get().getContent(), HttpStatus.OK);
     }
 
 }

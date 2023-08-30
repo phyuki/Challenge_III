@@ -1,6 +1,6 @@
 package com.compass.challenge3.service;
 
-import com.compass.challenge3.client.JSONParseClientAsync;
+import com.compass.challenge3.client.JSONParseClient;
 import com.compass.challenge3.dto.CommentRecord;
 import com.compass.challenge3.entity.Comment;
 import com.compass.challenge3.repository.CommentRepository;
@@ -14,13 +14,10 @@ import java.util.List;
 public class CommentService {
 
     private final CommentRepository commentRepository;
-    private final JSONParseClientAsync proxy;
 
     @Autowired
-    public CommentService(CommentRepository commentRepository,
-                          JSONParseClientAsync proxy) {
+    public CommentService(CommentRepository commentRepository) {
         this.commentRepository = commentRepository;
-        this.proxy = proxy;
     }
 
     public List<Comment> recordToComments(List<CommentRecord> commentRecords){

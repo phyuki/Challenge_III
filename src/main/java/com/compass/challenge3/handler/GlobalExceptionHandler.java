@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import java.time.Instant;
+import java.util.concurrent.ExecutionException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
@@ -34,6 +35,26 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
     public ProblemDetail handleRuntimeException(RuntimeException e) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.REQUEST_TIMEOUT,
+                e.getLocalizedMessage());
+        problemDetail.setProperty("timestamp", Instant.now());
+        problemDetail.setProperty("stacktrace", e.getStackTrace());
+
+        return problemDetail;
+    }
+
+    @ExceptionHandler(ExecutionException.class)
+    public ProblemDetail handleExecutionException(ExecutionException e) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.REQUEST_TIMEOUT,
+                e.getLocalizedMessage());
+        problemDetail.setProperty("timestamp", Instant.now());
+        problemDetail.setProperty("stacktrace", e.getStackTrace());
+
+        return problemDetail;
+    }
+
+    @ExceptionHandler(InterruptedException.class)
+    public ProblemDetail handleInterruptedException(ExecutionException e) {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.REQUEST_TIMEOUT,
                 e.getLocalizedMessage());
         problemDetail.setProperty("timestamp", Instant.now());
