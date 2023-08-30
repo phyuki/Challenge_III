@@ -60,8 +60,8 @@ public class AsyncPostService {
         return CompletableFuture.completedFuture(postService.findPostsByPage(pageNo, pageSize));
     }
 
-    @Async(value = "asyncExecutor")
-    public CompletableFuture<List<History>> initPost(Long postId) {
+    @Async
+    public CompletableFuture<List<History>> initPost(Long postId){
         return CompletableFuture.completedFuture(postService.initPost(postId));
     }
 
