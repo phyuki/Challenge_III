@@ -5,7 +5,7 @@ This application asynchronously fetches posts from an external API, enriches the
 
 ## Implemented features
 * CRUD implementation
-* Asynchronous fetch (with OpenFeign to consume data from API)
+* Async fetch (with OpenFeign to consume data from API)
 * OpenAPI (using Swagger)  
 * ProblemDetails -> Global Exception Handler
 
