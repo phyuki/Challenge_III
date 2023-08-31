@@ -10,4 +10,4 @@ This application asynchronously fetches posts from an external API, enriches the
 * ProblemDetails -> Global Exception Handler
 
 ## API documentation
-From the endpoint **/swagger-ui/index.html.**, you can access the API documentation. It has the default attributes provided by the OpenAPI Specification through Swagger framework.
+From the endpoint **/swagger-ui/index.html**, you can access the API documentation. It has the default attributes provided by the OpenAPI Specification through Swagger framework.
